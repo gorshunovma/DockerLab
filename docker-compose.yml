@@ -1,0 +1,61 @@
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    image: ubuntu24.04-postgres16:1.0
+    container_name: postgres
+    restart: always
+    networks:
+      - db-network
+    volumes:
+      - ./postgresql/data:/var/lib/postgresql
+      - ./postgresql/log:/var/log/postgresql
+      - ./postgresql/etc:/etc/postgresql
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: P@ssw0rd
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  zabbix:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    image: zabbix/zabbix-web-nginx-pgsql:ubuntu-7.0.0
+    container_name: zabbix
+    #restart: always
+    networks:
+      - web-network
+      - db-network
+    environment:
+      - DB_SERVER_HOST="postgres"
+      - POSTGRES_USER="zabbix"
+      - POSTGRES_PASSWORD="zabbix"
+      - ZBX_SERVER_HOST="zabbix"
+      - PHP_TZ="Europe/Saratov"
+      - DB_SERVER_PORT="5432"
+      - ZBX_SERVER_PORT="10051"
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    image: ubuntu24.04-nginx:1.0
+    container_name: nginx
+    depends_on:
+      - zabbix
+    #restart: always
+    volumes:
+      - ./nginx/default:/etc/nginx/sites-available/default
+    ports:
+      - "80:80"
+    networks:
+      - web-network
+
+  networks:
+    db-network:
+      driver: bridge
+    web-network:
+      driver: bridge
