@@ -2,12 +2,11 @@ FROM ubuntu:24.04
 
 RUN groupadd -g 1111 postgres && useradd -u 1111 -g 1111 -d /var/lib/postgresql -s /bin/bash postgres
 
-RUN apt-get update && \
-    apt-get install -y postgresql-16 sudo && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt update &&apt install -y postgresql-16 &&rm -rf /var/lib/apt/lists/*
 
 COPY ./postgresql/entrypoint.sh /usr/bin/entrypoint.sh
-RUN chown 1111:1111 /usr/bin/entrypoint.sh
+RUN chmod +x /usr/bin/entrypoint.sh
+
 STOPSIGNAL SIGINT
 
 ENTRYPOINT ["/usr/bin/entrypoint.sh"]

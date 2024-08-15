@@ -7,7 +7,7 @@ services:
     container_name: postgres
     restart: always
     networks:
-      - db-network
+      - dbNet
     volumes:
       - ./postgresql/data:/var/lib/postgresql
       - ./postgresql/log:/var/log/postgresql
@@ -20,6 +20,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+
   zabbix:
     build:
       context: .
@@ -28,16 +30,16 @@ services:
     container_name: zabbix
     #restart: always
     networks:
-      - web-network
-      - db-network
+      - webNet
+      - dbNet
     environment:
       - DB_SERVER_HOST="postgres"
       - POSTGRES_USER="zabbix"
       - POSTGRES_PASSWORD="zabbix"
       - ZBX_SERVER_HOST="zabbix"
       - PHP_TZ="Europe/Saratov"
-      - DB_SERVER_PORT="5432"
-      - ZBX_SERVER_PORT="10051"
+      #- DB_SERVER_PORT="5432"
+      #- ZBX_SERVER_PORT="10051"
   nginx:
     build:
       context: .
@@ -52,10 +54,11 @@ services:
     ports:
       - "80:80"
     networks:
-      - web-network
+      - webNet
 
-  networks:
-    db-network:
-      driver: bridge
-    web-network:
-      driver: bridge
+
+networks:
+  dbNet:
+    driver: bridge
+  webNet:
+    driver: bridge
