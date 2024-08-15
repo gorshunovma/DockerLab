@@ -4,6 +4,7 @@
 function postgres_start()
 {
     su postgres -c "pg_ctlcluster 16 main start"
+    #su postgres -c "pg_ctl -D /var/lib/postgresql/data -l logfile start"
     until pg_isready -h localhost -p 5432
     do
         echo "Waiting for PostgreSQL to start..."
@@ -27,4 +28,4 @@ else
     postgres_start
 fi
 echo 'PostgreSQL Starting...'
-su postgres -c "tail -f /dev/null"
+sudo su postgres -c "tail -f /dev/null"
