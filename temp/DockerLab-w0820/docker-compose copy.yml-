@@ -4,17 +4,18 @@ services:
     container_name: db
     restart: always
     volumes:
-      - ./postgresql/data:/var/lib/postgresql/data
+      - ./postgresql/data:/var/lib/postgresql
       - ./postgresql/log:/var/log/postgresql
       - ./postgresql/etc:/etc/postgresql
-      - ./initdb/initdb.sh:/docker-entrypoint-initdb.d/initdb.sh:ro
+      #- ./postgresql/initdb:/docker-entrypoint-initdb.d
+      - ../2. Init Database:/docker-entrypoint-initdb.d
     environment:
-      - POSTGRES_USER=zabbix
-      - POSTGRES_PASSWORD=ZabbixPasswd
-      - POSTGRES_DB=zabbix
-    
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=zabbix
+      - POSTGRES_DB=postgres
+      #- PGDATA=/var/lib/postgresql/data/pgdata
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "zabbix"]
+      test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,10 +33,9 @@ services:
     container_name: zabbix-srv
     restart: always
     environment:
-      - DB_SERVER_HOST=db
-      - POSTGRES_USER=zabbix
-      - POSTGRES_PASSWORD=ZabbixPasswd
-      - DB_SERVER_DBNAME=zabbix
+      DB_SERVER_HOST: db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: zabbix
     depends_on:
       - db
     networks:
@@ -50,9 +50,9 @@ services:
     restart: always
     environment:
       DB_SERVER_HOST: db
-      DB_SERVER_DBNAME: zabbix
-      POSTGRES_USER: zabbix
-      POSTGRES_PASSWORD: ZabbixPasswd
+      DB_SERVER_DBNAME: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: zabbix
       ZBX_SERVER_HOST: zabbix-srv
       PHP_TZ: Europe/Saratov
       DB_SERVER_PORT: 5432
@@ -61,7 +61,7 @@ services:
       - db
       - zabbix-srv
     ports:
-      - "80:8080"
+      - "0.0.0.0:80:8080"
     networks:
       - zNet
       - dbNet      
