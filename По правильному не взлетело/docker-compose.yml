@@ -1,0 +1,125 @@
+services:
+ postgres-server:
+    image: postgres:16.3-alpine3.20
+    container_name: postgres-server
+    restart: unless-stopped
+    volumes:
+      - ./pgdata/data:/var/lib/postgresql/data
+      - ./pgdata/log:/var/log/postgresql
+      - ./pgdata/etc:/etc/postgresql
+      - ./initdb/initdb.sh:/docker-entrypoint-initdb.d/initdb.sh:ro
+    environment:
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix
+      - POSTGRES_DB=zabbix
+    
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "zabbix"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          # cpus: '1'
+          memory: 1G
+    networks:
+      - database
+
+
+
+ zabbix-server:
+  extends:
+   file: compose_zabbix_components.yml
+   service: server-pgsql
+  build:
+   context: ./Dockerfiles/server-pgsql/alpine
+   cache_from:
+    - alpine:3.20
+   args:
+  #   BUILD_BASE_IMAGE: ${BUILD_BASE_PGSQL_IMAGE}:${ZABBIX_ALPINE_IMAGE_TAG}${ZABBIX_LOCAL_IMAGE_TAG_POSTFIX}
+  # image: zabbix-server-pgsql:${ZABBIX_ALPINE_IMAGE_TAG}${ZABBIX_LOCAL_IMAGE_TAG_POSTFIX}
+
+    #BUILD_BASE_IMAGE: ${BUILD_BASE_PGSQL_IMAGE}:${ZABBIX_ALPINE_IMAGE_TAG}${ZABBIX_LOCAL_IMAGE_TAG_POSTFIX}
+    BUILD_BASE_IMAGE: zabbix-build-pgsql:alpine-7.0-local
+  #image: zabbix-web-nginx-pgsql:${ZABBIX_ALPINE_IMAGE_TAG}${ZABBIX_LOCAL_IMAGE_TAG_POSTFIX}
+  image: zabbix-server-pgsql:alpine-7.0-local
+
+  volumes:
+   - /etc/timezone:/etc/timezone:ro
+  depends_on:
+   - postgres-server
+  #  - zabbix-build-pgsql
+  labels:
+   com.zabbix.os: Alpine
+
+ zabbix-web-nginx-pgsql:
+  extends:
+   file: compose_zabbix_components.yml
+   service: web-nginx-pgsql
+  build:
+   context: ./Dockerfiles/web-nginx-pgsql/alpine
+   cache_from:
+    - alpine:3.20
+   args:
+    #BUILD_BASE_IMAGE: ${BUILD_BASE_PGSQL_IMAGE}:${ZABBIX_ALPINE_IMAGE_TAG}${ZABBIX_LOCAL_IMAGE_TAG_POSTFIX}
+    BUILD_BASE_IMAGE: zabbix-build-pgsql:alpine-7.0-local
+  #image: zabbix-web-nginx-pgsql:${ZABBIX_ALPINE_IMAGE_TAG}${ZABBIX_LOCAL_IMAGE_TAG_POSTFIX}
+  image: zabbix-web-nginx-pgsql::alpine-7.0-local
+
+  volumes:
+   - /etc/timezone:/etc/timezone:ro
+  depends_on:
+   - postgres-server
+  #  - zabbix-build-pgsql
+  labels:
+   com.zabbix.os: Alpine
+
+
+networks:
+  frontend:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+      #enable_ipv6: "false"
+    # ipam:
+    #   driver: default
+    #   config:
+        # - subnet: "${FRONTEND_SUBNET}"
+        #- subnet: "172.16.238.0/24"
+  backend:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+      #enable_ipv6: "false"
+    internal: true
+    # ipam:
+    #   driver: bridge
+    #   config:
+    #     # - subnet: "${BACKEND_SUBNET}"
+        #- subnet: "172.16.239.0/24"
+  database:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+      # enable_ipv6: "false"
+    internal: true
+    # ipam:
+    #   driver: "${DATABASE_NETWORK_DRIVER}"
+
+  # tools_frontend:
+  #   driver: bridge
+  #   driver_opts:
+  #     com.docker.network.enable_ipv6: "${ADD_TOOLS_ENABLE_IPV6}"
+  #   ipam:
+  #     driver: "${ADD_TOOLS_NETWORK_DRIVER}"
+  #     config:
+  #     - subnet: "${ADD_TOOLS_SUBNET}"
+
+
+
+secrets:
+  POSTGRES_USER:
+    file: ./env_vars/.POSTGRES_USER
+  POSTGRES_PASSWORD:
+    file: ./env_vars/.POSTGRES_PASSWORD
